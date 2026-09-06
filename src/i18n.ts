@@ -97,6 +97,9 @@ const en = {
   today: 'Today',
   prevMonth: 'Previous month',
   nextMonth: 'Next month',
+  chooseYear: 'Choose year',
+  prevYears: 'Previous years',
+  nextYears: 'Next years',
 
   fromContacts: 'Contacts',
   contactsDenied: 'Moi Book needs permission to read your contacts.',
@@ -225,6 +228,9 @@ const ta: Dict = {
   today: 'இன்று',
   prevMonth: 'முந்தைய மாதம்',
   nextMonth: 'அடுத்த மாதம்',
+  chooseYear: 'ஆண்டைத் தேர்ந்தெடு',
+  prevYears: 'முந்தைய ஆண்டுகள்',
+  nextYears: 'அடுத்த ஆண்டுகள்',
 
   fromContacts: 'தொடர்புகள்',
   contactsDenied: 'தொடர்புகளைப் படிக்க அனுமதி தேவை.',

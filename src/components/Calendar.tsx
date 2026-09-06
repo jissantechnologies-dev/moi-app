@@ -31,11 +31,21 @@ export default function Calendar({
     month: selected.getMonth(),
   });
 
+  // Year picker: a paged grid of 12 years, opened by tapping the header title.
+  const [yearView, setYearView] = useState(false);
+  const [yearPage, setYearPage] = useState(() => Math.floor(cursor.year / 12) * 12);
+
+  function openYearView() {
+    setYearPage(Math.floor(cursor.year / 12) * 12);
+    setYearView(true);
+  }
+
   // Re-open on the month of whatever is currently selected.
   const [lastValue, setLastValue] = useState(value);
   if (value !== lastValue) {
     setLastValue(value);
     setCursor({ year: selected.getFullYear(), month: selected.getMonth() });
+    setYearView(false);
   }
 
   const cells = useMemo(
@@ -45,6 +55,10 @@ export default function Calendar({
   const todayIso = toISODate(new Date());
 
   function shift(by: number) {
+    if (yearView) {
+      setYearPage((p) => p + by * 12);
+      return;
+    }
     const d = new Date(cursor.year, cursor.month + by, 1);
     setCursor({ year: d.getFullYear(), month: d.getMonth() });
   }
@@ -59,56 +73,95 @@ export default function Calendar({
               onPress={() => shift(-1)}
               hitSlop={10}
               style={styles.arrow}
-              accessibilityLabel={L.prevMonth}
+              accessibilityLabel={yearView ? L.prevYears : L.prevMonth}
             >
               <Text style={styles.arrowText}>‹</Text>
             </Pressable>
-            <Text style={styles.headerTitle}>
-              {L.monthsLong[cursor.month]} {cursor.year}
-            </Text>
+            <Pressable
+              onPress={() => (yearView ? setYearView(false) : openYearView())}
+              hitSlop={8}
+              accessibilityLabel={L.chooseYear}
+            >
+              <Text style={styles.headerTitle}>
+                {yearView
+                  ? `${yearPage} – ${yearPage + 11}`
+                  : `${L.monthsLong[cursor.month]} ${cursor.year}`}
+                {' ▾'}
+              </Text>
+            </Pressable>
             <Pressable
               onPress={() => shift(1)}
               hitSlop={10}
               style={styles.arrow}
-              accessibilityLabel={L.nextMonth}
+              accessibilityLabel={yearView ? L.nextYears : L.nextMonth}
             >
               <Text style={styles.arrowText}>›</Text>
             </Pressable>
           </View>
 
-          <View style={styles.week}>
-            {L.weekdaysShort.map((d, i) => (
-              <Text key={i} style={styles.weekday}>
-                {d}
-              </Text>
-            ))}
-          </View>
-
-          <View style={styles.grid}>
-            {cells.map((cell, i) => {
-              if (!cell) return <View key={i} style={styles.cell} />;
-              const isSelected = cell.iso === value;
-              const isToday = cell.iso === todayIso;
-              return (
-                <Pressable
-                  key={i}
-                  style={({ pressed }) => [
-                    styles.cell,
-                    isSelected && styles.cellSelected,
-                    !isSelected && isToday && styles.cellToday,
-                    pressed && !isSelected && { opacity: 0.6 },
-                  ]}
-                  onPress={() => onSelect(cell.iso)}
-                >
-                  <Text
-                    style={[styles.cellText, isSelected && styles.cellTextSelected]}
+          {yearView ? (
+            <View style={styles.grid}>
+              {Array.from({ length: 12 }, (_, i) => yearPage + i).map((y) => {
+                const isSelected = y === cursor.year;
+                return (
+                  <Pressable
+                    key={y}
+                    style={({ pressed }) => [
+                      styles.yearCell,
+                      isSelected && styles.cellSelected,
+                      pressed && !isSelected && { opacity: 0.6 },
+                    ]}
+                    onPress={() => {
+                      setCursor((c) => ({ ...c, year: y }));
+                      setYearView(false);
+                    }}
                   >
-                    {cell.day}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+                    <Text
+                      style={[styles.cellText, isSelected && styles.cellTextSelected]}
+                    >
+                      {y}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : (
+            <>
+            <View style={styles.week}>
+              {L.weekdaysShort.map((d, i) => (
+                <Text key={i} style={styles.weekday}>
+                  {d}
+                </Text>
+              ))}
+            </View>
+
+            <View style={styles.grid}>
+              {cells.map((cell, i) => {
+                if (!cell) return <View key={i} style={styles.cell} />;
+                const isSelected = cell.iso === value;
+                const isToday = cell.iso === todayIso;
+                return (
+                  <Pressable
+                    key={i}
+                    style={({ pressed }) => [
+                      styles.cell,
+                      isSelected && styles.cellSelected,
+                      !isSelected && isToday && styles.cellToday,
+                      pressed && !isSelected && { opacity: 0.6 },
+                    ]}
+                    onPress={() => onSelect(cell.iso)}
+                  >
+                    <Text
+                      style={[styles.cellText, isSelected && styles.cellTextSelected]}
+                    >
+                      {cell.day}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            </>
+          )}
 
           <View style={styles.footer}>
             <Pressable onPress={() => onSelect(todayIso)} hitSlop={8}>
@@ -181,6 +234,13 @@ const styles = StyleSheet.create({
   cell: {
     width: `${100 / 7}%`,
     aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.sm,
+  },
+  yearCell: {
+    width: '33.333%',
+    height: 56,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.sm,
