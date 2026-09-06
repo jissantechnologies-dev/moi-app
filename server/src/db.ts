@@ -1,0 +1,71 @@
+import pg from 'pg';
+
+export const pool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10,
+});
+
+/**
+ * Schema is applied on boot. Statements are all IF NOT EXISTS, so a restart is
+ * a no-op and a fresh database gets built in one go.
+ */
+export async function migrate(): Promise<void> {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id             BIGSERIAL PRIMARY KEY,
+      email          TEXT NOT NULL,
+      -- Logins are matched on the lowercased form so Foo@x.com and foo@x.com
+      -- cannot become two accounts.
+      email_lower    TEXT NOT NULL UNIQUE,
+      password_hash  TEXT NOT NULL,
+      email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+      lang           TEXT NOT NULL DEFAULT 'en'
+    );
+
+    -- Refresh tokens are stored only as a SHA-256 hash: a database leak must not
+    -- hand out usable sessions.
+    CREATE TABLE IF NOT EXISTS refresh_tokens (
+      token_hash  TEXT PRIMARY KEY,
+      user_id     BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at  TIMESTAMPTZ NOT NULL,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      revoked_at  TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS refresh_tokens_user ON refresh_tokens (user_id);
+
+    -- Email verification and password reset share one table; the purpose column says which.
+    CREATE TABLE IF NOT EXISTS email_tokens (
+      token_hash TEXT PRIMARY KEY,
+      user_id    BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      purpose    TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at    TIMESTAMPTZ
+    );
+
+    CREATE TABLE IF NOT EXISTS entries (
+      id            TEXT NOT NULL,
+      user_id       BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      first_name    TEXT NOT NULL DEFAULT '',
+      last_name     TEXT NOT NULL DEFAULT '',
+      phone         TEXT NOT NULL DEFAULT '',
+      place         TEXT NOT NULL DEFAULT '',
+      function_date TEXT NOT NULL DEFAULT '',
+      function_name TEXT NOT NULL DEFAULT '',
+      direction     TEXT NOT NULL DEFAULT 'given',
+      gift_kind     TEXT NOT NULL DEFAULT 'cash',
+      amount        DOUBLE PRECISION NOT NULL DEFAULT 0,
+      gold_grams    DOUBLE PRECISION NOT NULL DEFAULT 0,
+      gold_carat    INTEGER NOT NULL DEFAULT 22,
+      gift_note     TEXT NOT NULL DEFAULT '',
+      notes         TEXT NOT NULL DEFAULT '',
+      created_at    BIGINT NOT NULL DEFAULT 0,
+      -- Sync bookkeeping. Deletes leave a tombstone so other devices learn about
+      -- them; a row is never hard-deleted while the account lives.
+      updated_at    BIGINT NOT NULL DEFAULT 0,
+      deleted       BOOLEAN NOT NULL DEFAULT FALSE,
+      PRIMARY KEY (user_id, id)
+    );
+    CREATE INDEX IF NOT EXISTS entries_user_updated ON entries (user_id, updated_at);
+  `);
+}

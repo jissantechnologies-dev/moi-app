@@ -1,17 +1,20 @@
 {
   "expo": {
-    "name": "tmpapp",
-    "slug": "tmpapp",
+    "name": "Moi Book",
+    "slug": "moi-book",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSContactsUsageDescription": "Moi Book uses your contacts so you can pick a person instead of typing their phone number."
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#FBF7F1",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -20,6 +23,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-sharing",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Moi Book uses your contacts so you can pick a person instead of typing their phone number."
+        }
+      ],
+      "expo-sqlite"
+    ]
   }
 }

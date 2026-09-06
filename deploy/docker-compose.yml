@@ -1,0 +1,70 @@
+# Moi Book — static web build plus its API, behind the VPS's existing Traefik.
+# Lives at /opt/moi-book on the server.
+#
+# Both routers answer on the same host, so the browser calls /api same-origin
+# and never issues a CORS preflight. Traefik matches the more specific rule
+# first, which is why the API router carries a higher priority.
+services:
+  web:
+    image: nginx:1.27-alpine
+    container_name: moi-book
+    restart: unless-stopped
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
+      - ./site.conf:/etc/nginx/conf.d/default.conf:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.moibook.rule=Host(`moi.jissantechnologies.online`)"
+      - "traefik.http.routers.moibook.entrypoints=websecure"
+      - "traefik.http.routers.moibook.tls=true"
+      - "traefik.http.routers.moibook.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.moibook.priority=1"
+      - "traefik.http.services.moibook.loadbalancer.server.port=80"
+
+  api:
+    build: ./server
+    container_name: moi-book-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://moi:${POSTGRES_PASSWORD}@db:5432/moi
+      JWT_SECRET: ${JWT_SECRET}
+      APP_URL: https://moi.jissantechnologies.online
+      # Sign-up confirmation and password reset mail. Without these the server
+      # logs the link instead of sending it.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.moibookapi.rule=Host(`moi.jissantechnologies.online`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.moibookapi.entrypoints=websecure"
+      - "traefik.http.routers.moibookapi.tls=true"
+      - "traefik.http.routers.moibookapi.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.moibookapi.priority=10"
+      - "traefik.http.services.moibookapi.loadbalancer.server.port=8080"
+
+  db:
+    image: postgres:16-alpine
+    container_name: moi-book-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: moi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: moi
+    volumes:
+      - moi-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moi -d moi"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # No published ports: the database is reachable only from the compose
+    # network, never from the internet.
+
+volumes:
+  moi-db:
