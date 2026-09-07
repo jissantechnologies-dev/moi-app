@@ -3,12 +3,20 @@
   "compilerOptions": {
     "noEmit": false,
     "outDir": "./dist",
+    "rootDir": "./src",
     "declaration": true,
     "sourceMap": true,
     "rewriteRelativeImportExtensions": true,
-    "rootDir": "./src"
+    "module": "commonjs",
+    "moduleResolution": "node10",
+    "verbatimModuleSyntax": false,
+    "ignoreDeprecations": "6.0"
   },
   "include": [
     "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/index.ts",
+    "src/migrate.ts"
   ]
 }
