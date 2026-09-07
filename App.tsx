@@ -203,6 +203,7 @@ export default function App() {
           onSave={upsert}
           onCancel={() => setRoute({ name: 'home' })}
           onDelete={route.entry ? remove : undefined}
+          canAttach={Boolean(user)}
         />
       ) : activePerson ? (
         <PersonDetail

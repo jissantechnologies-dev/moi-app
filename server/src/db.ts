@@ -80,8 +80,17 @@ export async function migrate(target: pg.Pool = pool): Promise<void> {
       -- them; a row is never hard-deleted while the account lives.
       updated_at    BIGINT NOT NULL DEFAULT 0,
       deleted       BOOLEAN NOT NULL DEFAULT FALSE,
+      -- Bills and gift photos. The bytes live in Blob storage; this holds the
+      -- JSON list of {id, mime, name, size} pointing at them. Keeping it on the
+      -- entry lets attachments ride the existing sync rather than needing a
+      -- protocol of their own.
+      attachments   TEXT NOT NULL DEFAULT '[]',
       PRIMARY KEY (user_id, id)
     );
     CREATE INDEX IF NOT EXISTS entries_user_updated ON entries (user_id, updated_at);
+
+    -- The column above landed after the first release, so a database created
+    -- before it needs the column added rather than the table created.
+    ALTER TABLE entries ADD COLUMN IF NOT EXISTS attachments TEXT NOT NULL DEFAULT '[]';
   `);
 }

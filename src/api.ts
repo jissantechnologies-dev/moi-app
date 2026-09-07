@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Entry } from './types';
+import { Attachment, Entry } from './types';
 
 /**
  * In the browser the app and API share an origin, so a relative path is right
@@ -80,7 +80,10 @@ async function raw(
  * only means "refresh me". One retry, and only one: a second failure is a real
  * expiry and the caller should see it.
  */
-async function request(path: string, init: RequestInit = {}): Promise<any> {
+async function request(
+  path: string,
+  init: RequestInit & { binary?: boolean } = {}
+): Promise<any> {
   try {
     return await raw(path, init);
   } catch (err) {
@@ -178,4 +181,51 @@ export async function pushSettings(lang: string): Promise<void> {
     method: 'PUT',
     body: JSON.stringify({ lang }),
   });
+}
+
+/**
+ * Uploads one bill or photo and returns the record to store on the entry. The
+ * bytes go straight up as the request body: the server reads the type from the
+ * Content-Type header, so there is no multipart parser on either side.
+ */
+export async function uploadAttachment(
+  body: Blob,
+  mime: string,
+  name: string
+): Promise<Attachment> {
+  const res = await request(`/api/attachments?name=${encodeURIComponent(name)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': mime },
+    body,
+    binary: true,
+  });
+  return {
+    id: String(res.id),
+    mime: String(res.mime ?? mime),
+    name: String(res.name ?? name),
+    size: Number(res.size) || 0,
+  };
+}
+
+/**
+ * Fetches an attachment as a data URI. The route needs an Authorization
+ * header, which an <Image src> cannot send, so the bytes come back through
+ * fetch and are inlined instead of being linked.
+ */
+export async function attachmentDataUri(id: string): Promise<string> {
+  const { bytes, mime } = await request(`/api/attachments/${encodeURIComponent(id)}`, {
+    binary: true,
+  });
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read the file.'));
+    reader.onloadend = () => resolve(String(reader.result));
+    reader.readAsDataURL(
+      mime && bytes.type !== mime ? new Blob([bytes], { type: mime }) : bytes
+    );
+  });
+}
+
+export async function deleteAttachment(id: string): Promise<void> {
+  await request(`/api/attachments/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }

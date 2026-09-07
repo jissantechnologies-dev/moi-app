@@ -10,13 +10,14 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Attachments from '../components/Attachments';
 import Calendar from '../components/Calendar';
 import { Button, Field, Segmented } from '../components/ui';
 import { contactsSupported, pickContact } from '../contacts';
 import { formatDate, toISODate } from '../format';
 import { t } from '../i18n';
 import { colors, radius, space } from '../theme';
-import { Carat, CARATS, Direction, Entry, GiftKind, Lang } from '../types';
+import { Attachment, Carat, CARATS, Direction, Entry, GiftKind, Lang } from '../types';
 
 type Props = {
   lang: Lang;
@@ -24,6 +25,8 @@ type Props = {
   onSave: (e: Entry) => void;
   onCancel: () => void;
   onDelete?: (id: string) => void;
+  /** Attachments live with the account, so they need one. */
+  canAttach: boolean;
 };
 
 const newId = () =>
@@ -35,6 +38,7 @@ export default function EntryForm({
   onSave,
   onCancel,
   onDelete,
+  canAttach,
 }: Props) {
   const L = t(lang);
   const insets = useSafeAreaInsets();
@@ -60,6 +64,9 @@ export default function EntryForm({
   const [goldCarat, setGoldCarat] = useState<Carat>(initial?.goldCarat ?? 22);
   const [giftNote, setGiftNote] = useState(initial?.giftNote ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
+  const [attachments, setAttachments] = useState<Attachment[]>(
+    initial?.attachments ?? []
+  );
   const [showPicker, setShowPicker] = useState(false);
 
   function submit() {
@@ -87,6 +94,7 @@ export default function EntryForm({
       // Stamped on every save so the server can order this against other devices.
       updatedAt: Date.now(),
       deleted: false,
+      attachments,
     });
   }
 
@@ -288,6 +296,13 @@ export default function EntryForm({
         )}
 
         <Field label={L.notes} value={notes} onChangeText={setNotes} multiline />
+
+        <Attachments
+          lang={lang}
+          value={attachments}
+          onChange={setAttachments}
+          canAttach={canAttach}
+        />
 
         <Button title={L.save} onPress={submit} />
 

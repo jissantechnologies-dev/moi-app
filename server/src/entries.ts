@@ -3,6 +3,14 @@ import { currentUserId } from './auth.ts';
 import { pool } from './db.ts';
 
 /** Shape sent to and from the app. Mirrors the client's Entry type. */
+/** Points at bytes in Blob storage; see the attachment routes below. */
+type Attachment = {
+  id: string;
+  mime: string;
+  name: string;
+  size: number;
+};
+
 type WireEntry = {
   id: string;
   firstName: string;
@@ -21,7 +29,34 @@ type WireEntry = {
   createdAt: number;
   updatedAt: number;
   deleted: boolean;
+  attachments: Attachment[];
 };
+
+/** The column is TEXT, so a malformed value must not take the whole sync down. */
+function parseAttachments(raw: unknown): Attachment[] {
+  if (typeof raw !== 'string') return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? cleanAttachments(parsed) : [];
+  } catch {
+    return [];
+  }
+}
+
+function cleanAttachments(raw: unknown): Attachment[] {
+  if (!Array.isArray(raw)) return [];
+  // A cap on count as well as size: the column rides every sync response.
+  return raw.slice(0, 20).flatMap((a: any) => {
+    const id = String(a?.id ?? '').trim();
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return [];
+    return [{
+      id,
+      mime: String(a?.mime ?? '').slice(0, 100),
+      name: String(a?.name ?? '').slice(0, 200),
+      size: Number(a?.size) || 0,
+    }];
+  });
+}
 
 function toWire(row: any): WireEntry {
   return {
@@ -43,6 +78,7 @@ function toWire(row: any): WireEntry {
     createdAt: Number(row.created_at) || 0,
     updatedAt: Number(row.updated_at) || 0,
     deleted: Boolean(row.deleted),
+    attachments: parseAttachments(row.attachments),
   };
 }
 
@@ -70,6 +106,7 @@ function clean(raw: any): WireEntry | null {
     createdAt: Number(raw?.createdAt) || Date.now(),
     updatedAt: Number(raw?.updatedAt) || Date.now(),
     deleted: Boolean(raw?.deleted),
+    attachments: cleanAttachments(raw?.attachments),
   };
 }
 
@@ -102,8 +139,8 @@ export function entryRoutes(app: FastifyInstance): void {
           `INSERT INTO entries
              (id, user_id, first_name, last_name, phone, place, function_date,
               function_name, direction, gift_kind, amount, gold_grams, gold_carat,
-              gift_note, notes, created_at, updated_at, deleted)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+              gift_note, notes, created_at, updated_at, deleted, attachments)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
            ON CONFLICT (user_id, id) DO UPDATE SET
              first_name = EXCLUDED.first_name,
              last_name = EXCLUDED.last_name,
@@ -120,7 +157,8 @@ export function entryRoutes(app: FastifyInstance): void {
              notes = EXCLUDED.notes,
              created_at = EXCLUDED.created_at,
              updated_at = EXCLUDED.updated_at,
-             deleted = EXCLUDED.deleted
+             deleted = EXCLUDED.deleted,
+             attachments = EXCLUDED.attachments
            WHERE entries.updated_at <= EXCLUDED.updated_at`,
           [
             e.id,
@@ -141,6 +179,7 @@ export function entryRoutes(app: FastifyInstance): void {
             e.createdAt,
             e.updatedAt,
             e.deleted,
+            JSON.stringify(e.attachments),
           ]
         );
       }

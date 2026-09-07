@@ -1,6 +1,7 @@
 import rateLimit from '@fastify/rate-limit';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
+import { attachmentRoutes } from './attachments.ts';
 import { authRoutes } from './auth.ts';
 import { entryRoutes } from './entries.ts';
 
@@ -34,6 +35,7 @@ export function buildApp(): FastifyInstance {
 
   authRoutes(app);
   entryRoutes(app);
+  attachmentRoutes(app);
 
   app.setErrorHandler((error, _req, reply) => {
     app.log.error(error);

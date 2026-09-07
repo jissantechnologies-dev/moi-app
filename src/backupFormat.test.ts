@@ -24,6 +24,7 @@ const base: Entry = {
   createdAt: 1,
   updatedAt: 1,
   deleted: false,
+  attachments: [],
 };
 const e = (o: Partial<Entry>): Entry => ({ ...base, ...o });
 
@@ -59,7 +60,8 @@ assert.ok(lines[1].includes('"chain ""long"""'), 'inner quotes are doubled');
 assert.ok(lines[1].includes('"line1\nline2"'), 'newline in notes is quoted');
 assert.ok(lines[1].includes(',8.5,22,'), 'gold weight and carat are written');
 assert.ok(lines[2].includes(',cash,5000,,,'), 'cash rows leave gold blank');
-assert.equal(lines[0].split(',').length, 13, 'header column count');
+assert.equal(lines[0].split(',').length, 14, 'header column count');
+assert.ok(lines[0].endsWith('Attachments'), 'attachment count is the last column');
 
 // --- Backup round trip -------------------------------------------------
 const restored = parseBackup(buildBackup([e({ id: 'x', goldGrams: 4 })]));
@@ -93,5 +95,31 @@ const noId = parseBackup(
   JSON.stringify({ app: BACKUP_MAGIC, entries: [{ firstName: 'Ghost' }] })
 );
 assert.equal(noId!.length, 0, 'entries without an id are dropped');
+
+// Attachments are pointers, not files: a backup carries the list so a restore
+// still knows which bills belong to which entry.
+const withFiles = {
+  ...base,
+  id: 'att-1',
+  attachments: [
+    { id: 'a1b2c3', mime: 'image/jpeg', name: 'bill.jpg', size: 12345 },
+  ],
+};
+const roundTripped = parseBackup(buildBackup([withFiles]));
+assert.equal(roundTripped!.length, 1, 'entry with an attachment survives a backup');
+assert.deepEqual(
+  roundTripped![0].attachments,
+  withFiles.attachments,
+  'attachment list round-trips through a backup'
+);
+
+const attachCsv = buildCsv([withFiles]).trim().split(/\r?\n/);
+assert.ok(attachCsv[1].endsWith(',1'), 'csv reports how many files are attached');
+
+// A record written before attachments existed must still load.
+const legacy = parseBackup(
+  JSON.stringify({ app: BACKUP_MAGIC, entries: [{ id: 'old-1', firstName: 'Old' }] })
+);
+assert.deepEqual(legacy![0].attachments, [], 'older entries get an empty list');
 
 console.log('backupFormat: all assertions passed');

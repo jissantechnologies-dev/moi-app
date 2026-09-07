@@ -36,6 +36,7 @@ export function buildCsv(entries: Entry[]): string {
     'Gold carat',
     'Gift details',
     'Notes',
+    'Attachments',
   ];
   const rows: (string | number)[][] = [...entries]
     .sort((a, b) => a.functionDate.localeCompare(b.functionDate))
@@ -56,6 +57,8 @@ export function buildCsv(entries: Entry[]): string {
         isGold ? e.goldCarat : '',
         e.giftNote,
         e.notes,
+        // The files themselves are not in a CSV; the count says one exists.
+        e.attachments.length || '',
       ];
     });
 

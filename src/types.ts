@@ -33,6 +33,19 @@ export type Entry = {
    * a second device would simply re-upload the row it still has.
    */
   deleted: boolean;
+  /** Bills and gift photos. Empty for every entry written before this existed. */
+  attachments: Attachment[];
+};
+
+/**
+ * A bill or photo kept with an entry. Only the pointer lives here — the file
+ * itself is fetched from /api/attachments/:id when it is actually shown.
+ */
+export type Attachment = {
+  id: string;
+  mime: string;
+  name: string;
+  size: number;
 };
 
 export type Lang = 'en' | 'ta';
@@ -40,6 +53,32 @@ export type Lang = 'en' | 'ta';
 export type Settings = {
   lang: Lang;
 };
+
+/** Accepts the JSON string SQLite holds as well as an already-parsed array. */
+function normalizeAttachments(raw: any): Attachment[] {
+  const list = typeof raw === 'string' ? safeParse(raw) : raw;
+  if (!Array.isArray(list)) return [];
+  return list.flatMap((a: any) => {
+    const id = String(a?.id ?? '');
+    if (!id) return [];
+    return [
+      {
+        id,
+        mime: String(a?.mime ?? ''),
+        name: String(a?.name ?? ''),
+        size: Number(a?.size) || 0,
+      },
+    ];
+  });
+}
+
+function safeParse(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
 
 /** Fills in fields added after a record was first written. */
 export function normalizeEntry(raw: any): Entry {
@@ -64,5 +103,6 @@ export function normalizeEntry(raw: any): Entry {
     createdAt: Number(raw?.createdAt) || Date.now(),
     updatedAt: Number(raw?.updatedAt) || Number(raw?.createdAt) || Date.now(),
     deleted: Boolean(raw?.deleted),
+    attachments: normalizeAttachments(raw?.attachments),
   };
 }

@@ -67,6 +67,14 @@ async function migrate(database: SQLite.SQLiteDatabase): Promise<void> {
       PRAGMA user_version = 2;
     `);
   }
+  if (version < 3) {
+    // Bills and gift photos, as the JSON list the server also stores. The
+    // bytes themselves never touch this database.
+    await database.execAsync(`
+      ALTER TABLE entries ADD COLUMN attachments TEXT NOT NULL DEFAULT '[]';
+      PRAGMA user_version = 3;
+    `);
+  }
 }
 
 export async function dbGetMeta(key: string): Promise<string | null> {
@@ -158,8 +166,8 @@ async function upsert(
     `INSERT INTO entries
        (id, firstName, lastName, phone, place, functionDate, functionName,
         direction, giftKind, amount, goldGrams, goldCarat, giftNote, notes,
-        createdAt, updatedAt, deleted)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        createdAt, updatedAt, deleted, attachments)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        firstName = excluded.firstName,
        lastName = excluded.lastName,
@@ -176,7 +184,8 @@ async function upsert(
        notes = excluded.notes,
        createdAt = excluded.createdAt,
        updatedAt = excluded.updatedAt,
-       deleted = excluded.deleted
+       deleted = excluded.deleted,
+       attachments = excluded.attachments
      WHERE excluded.updatedAt >= entries.updatedAt`,
     [
       e.id,
@@ -196,6 +205,7 @@ async function upsert(
       e.createdAt,
       e.updatedAt,
       e.deleted ? 1 : 0,
+      JSON.stringify(e.attachments),
     ]
   );
 }
