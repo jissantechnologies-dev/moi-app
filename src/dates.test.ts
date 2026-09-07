@@ -111,6 +111,23 @@ const valued = totalsOf([
 assert.equal(valued.given, 5000, 'a gold gift’s estimated worth is not cash');
 assert.equal(valued.goldGiven, 8, 'the gold is still counted in grams');
 
+// The weight is optional. A gold gift recorded by value alone is counted by
+// that value, or it would disappear from every total.
+const goldNoWeight = totalsOf([
+  gift({ id: 'g', direction: 'given', giftKind: 'gold', goldGrams: 0, amount: 100000 }),
+]);
+assert.equal(goldNoWeight.given, 100000, 'gold with no weight still counts as value');
+assert.equal(goldNoWeight.goldGiven, 0, 'and adds nothing to the gram total');
+
+// The two kinds of gold entry side by side: neither is lost, neither doubled.
+const mixedGold = totalsOf([
+  gift({ id: 'a', direction: 'given', giftKind: 'gold', goldGrams: 0, amount: 100000 }),
+  gift({ id: 'b', direction: 'given', giftKind: 'gold', goldGrams: 8, amount: 100000 }),
+  gift({ id: 'c', direction: 'given', giftKind: 'cash', amount: 1200 }),
+]);
+assert.equal(mixedGold.given, 101200, 'weighed gold is excluded, unweighed gold is not');
+assert.equal(mixedGold.goldGiven, 8, 'only the weighed gift adds grams');
+
 // Received works the same way, on the other side of the ledger.
 const got = totalsOf([
   gift({ id: 'r', direction: 'received', giftKind: 'gold', goldGrams: 4, amount: 30000 }),
