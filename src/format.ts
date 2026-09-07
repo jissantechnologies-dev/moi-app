@@ -27,27 +27,23 @@ export const emptyTotals = (): Totals => ({
 });
 
 /**
- * A gift is counted once, in whichever unit actually records it.
+ * Cash and gold are totalled in their own units and never converted into one
+ * another: a person can owe rupees and grams at the same time, and that is how
+ * the obligation is actually carried.
  *
- * A gold gift with a weight is counted in grams, so its rupee figure is only
- * an estimate of that same chain and must stay out of the cash total —
- * otherwise one gift reads as 8 g *and* Rs. 60,000 and the rupee balance means
- * nothing.
- *
- * But the weight is optional. A gold gift entered with a value and no grams is
- * recorded by that value alone, so dropping it would lose the gift from every
- * total. Same reasoning as an 'item' gift, which grams never describe.
+ * A gold gift's rupee figure counts toward the cash total alongside its weight.
+ * Both are shown on the gift's own row, so a summary that left the rupees out
+ * would contradict the rows it sits above — and in a book where every gold gift
+ * is recorded with a value, it would read as zero.
  */
 export function addToTotals(t: Totals, e: Entry): void {
   const isGold = e.giftKind === 'gold';
-  const countedInGrams = isGold && e.goldGrams > 0;
-  const cash = countedInGrams ? 0 : e.amount;
 
   if (e.direction === 'given') {
-    t.given += cash;
+    t.given += e.amount;
     t.goldGiven += isGold ? e.goldGrams : 0;
   } else {
-    t.received += cash;
+    t.received += e.amount;
     t.goldReceived += isGold ? e.goldGrams : 0;
   }
 }

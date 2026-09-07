@@ -90,11 +90,11 @@ assert.deepEqual(
   'the caller\u2019s array is left untouched'
 );
 
-// --- totals: cash and gold accumulate separately, and never double-count ---
+// --- totals: cash and gold accumulate in their own units ---
 
 const gift = (o: any) => normalizeEntry(o);
 
-// One person, two gifts at different functions: they add up per unit.
+// One person, two gifts at different functions: each unit adds up.
 const separate = totalsOf([
   gift({ id: 'c', direction: 'given', giftKind: 'cash', amount: 5000 }),
   gift({ id: 'g', direction: 'given', giftKind: 'gold', goldGrams: 8, amount: 0 }),
@@ -102,40 +102,36 @@ const separate = totalsOf([
 assert.equal(separate.given, 5000, 'cash gifts accumulate');
 assert.equal(separate.goldGiven, 8, 'gold grams accumulate alongside cash');
 
-// The rupee figure on a gold gift is an estimate of the same chain already
-// counted in grams, so it must stay out of the cash total.
+// A gold gift carries both a weight and a value, and the row shows both, so
+// the summary counts both. Leaving the rupees out would contradict the rows.
 const valued = totalsOf([
   gift({ id: 'c', direction: 'given', giftKind: 'cash', amount: 5000 }),
   gift({ id: 'g', direction: 'given', giftKind: 'gold', goldGrams: 8, amount: 60000 }),
 ]);
-assert.equal(valued.given, 5000, 'a gold gift’s estimated worth is not cash');
-assert.equal(valued.goldGiven, 8, 'the gold is still counted in grams');
+assert.equal(valued.given, 65000, 'a gold gift’s value counts toward the cash total');
+assert.equal(valued.goldGiven, 8, 'and its weight counts toward the gram total');
 
-// The weight is optional. A gold gift recorded by value alone is counted by
-// that value, or it would disappear from every total.
+// The weight is optional; a gold gift entered by value alone still counts.
 const goldNoWeight = totalsOf([
   gift({ id: 'g', direction: 'given', giftKind: 'gold', goldGrams: 0, amount: 100000 }),
 ]);
 assert.equal(goldNoWeight.given, 100000, 'gold with no weight still counts as value');
 assert.equal(goldNoWeight.goldGiven, 0, 'and adds nothing to the gram total');
 
-// The two kinds of gold entry side by side: neither is lost, neither doubled.
-const mixedGold = totalsOf([
-  gift({ id: 'a', direction: 'given', giftKind: 'gold', goldGrams: 0, amount: 100000 }),
+// A real book: every gift is gold, each with a weight and a value. The rupee
+// total must not read as zero while every row shows rupees.
+const realBook = totalsOf([
+  gift({ id: 'a', direction: 'given', giftKind: 'gold', goldGrams: 1, amount: 10000 }),
   gift({ id: 'b', direction: 'given', giftKind: 'gold', goldGrams: 8, amount: 100000 }),
-  gift({ id: 'c', direction: 'given', giftKind: 'cash', amount: 1200 }),
+  gift({ id: 'c', direction: 'given', giftKind: 'gold', goldGrams: 8, amount: 100000 }),
+  gift({ id: 'd', direction: 'received', giftKind: 'gold', goldGrams: 4, amount: 50000 }),
 ]);
-assert.equal(mixedGold.given, 101200, 'weighed gold is excluded, unweighed gold is not');
-assert.equal(mixedGold.goldGiven, 8, 'only the weighed gift adds grams');
+assert.equal(realBook.given, 210000, 'given rupees sum across gold gifts');
+assert.equal(realBook.goldGiven, 17, 'given grams sum across the same gifts');
+assert.equal(realBook.received, 50000, 'received rupees sum');
+assert.equal(realBook.goldReceived, 4, 'received grams sum');
 
-// Received works the same way, on the other side of the ledger.
-const got = totalsOf([
-  gift({ id: 'r', direction: 'received', giftKind: 'gold', goldGrams: 4, amount: 30000 }),
-]);
-assert.equal(got.received, 0, 'gold worth stays out of the received cash total');
-assert.equal(got.goldReceived, 4, 'received gold is counted in grams');
-
-// An item gift has no gram figure, so its rupee value is all it has.
+// An item gift has no weight, so its value is the only measure it has.
 const item = totalsOf([
   gift({ id: 'i', direction: 'given', giftKind: 'item', amount: 1500 }),
 ]);
