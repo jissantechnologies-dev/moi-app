@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -39,6 +39,23 @@ export default function Auth({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [googleReady, setGoogleReady] = useState(false);
+
+  // Google appears only when the server has credentials for it, and only on the
+  // web, where a redirect has somewhere to come back to.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    let live = true;
+    void api
+      .authConfig()
+      .then((c) => {
+        if (live) setGoogleReady(c.google);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
 
   function validate(): string | null {
     if (!EMAIL_RE.test(email.trim())) return L.emailInvalid;
@@ -137,6 +154,28 @@ export default function Auth({
             <Button title={mode === 'signIn' ? L.signIn : L.signUp} onPress={submit} />
           )}
 
+          {googleReady ? (
+            <>
+              <View style={styles.orRow}>
+                <View style={styles.orLine} />
+                <Text style={styles.orText}>{L.or}</Text>
+                <View style={styles.orLine} />
+              </View>
+              <Pressable
+                // A full page navigation, not a popup: the site is
+                // cross-origin isolated for the sake of SQLite, and that
+                // severs the opener a popup would need to answer through.
+                onPress={() => {
+                  window.location.href = api.googleSignInUrl();
+                }}
+                style={({ pressed }) => [styles.googleBtn, pressed && { opacity: 0.75 }]}
+              >
+                <Text style={styles.googleMark}>G</Text>
+                <Text style={styles.googleText}>{L.continueWithGoogle}</Text>
+              </Pressable>
+            </>
+          ) : null}
+
           <Pressable
             onPress={() => {
               setMode(mode === 'signIn' ? 'signUp' : 'signIn');
@@ -179,6 +218,28 @@ const styles = StyleSheet.create({
    * simply starts at the top and scrolls.
    */
   centred: { width: '100%', marginVertical: 'auto' },
+  orRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(3),
+    marginTop: space(4),
+    marginBottom: space(3),
+  },
+  orLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  orText: { fontSize: 12, fontWeight: '600', color: colors.textSoft },
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space(2.5),
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    paddingVertical: space(3.5),
+  },
+  googleMark: { fontSize: 17, fontWeight: '800', color: '#4285F4' },
+  googleText: { fontSize: 15, fontWeight: '600', color: colors.text },
   title: {
     fontSize: 30,
     fontWeight: '700',

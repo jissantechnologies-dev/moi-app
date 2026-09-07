@@ -1,7 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as api from './src/api';
 import MenuSheet, { MenuAction } from './src/components/MenuSheet';
@@ -45,6 +45,17 @@ export default function App() {
       const [e, s] = await Promise.all([loadEntries(), loadSettings()]);
       setEntries(e);
       setLang(s.lang);
+
+      // A redirect back from Google carries a code that signs someone in
+      // outright, so it is spent before the stored session is consulted.
+      const fromRedirect = await consumeUrlParams().catch(() => null);
+      if (fromRedirect) {
+        setUser(fromRedirect);
+        await adoptOwner(fromRedirect.id);
+        syncInBackground(setEntries);
+        setReady(true);
+        return;
+      }
 
       // Show the cached book straight away, then reconcile with the server.
       // A stored session survives a page reload, which is what makes the data
@@ -94,6 +105,53 @@ export default function App() {
     setLang(next);
     void saveSettings({ lang: next });
     if (user) void api.pushSettings(next).catch(() => {});
+  }
+
+  /**
+   * Handles the links and redirects that land back on the app: the one-time
+   * code from Google sign-in, and the confirmation and password-reset links
+   * sent by email. Each is consumed once and then wiped from the address bar,
+   * so a reload or a shared URL cannot replay it.
+   *
+   * Returns the account when a redirect signed someone in, so the caller can
+   * skip the stored-session path it would otherwise take.
+   */
+  async function consumeUrlParams(): Promise<api.SessionUser | null> {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
+
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('auth');
+    const verify = params.get('verify');
+    const failed = params.get('authError');
+    if (!code && !verify && !failed) return null;
+
+    const clean = () =>
+      window.history.replaceState({}, '', window.location.pathname);
+
+    if (failed) {
+      clean();
+      Alert.alert(failed === 'google_unverified' ? L.googleUnverified : L.googleFailed);
+      return null;
+    }
+
+    if (verify) {
+      clean();
+      try {
+        await api.verifyEmail(verify);
+        Alert.alert(L.emailConfirmed);
+      } catch {
+        Alert.alert(L.emailConfirmFailed);
+      }
+      return null;
+    }
+
+    clean();
+    try {
+      return await api.exchangeAuthCode(code!);
+    } catch {
+      Alert.alert(L.googleFailed);
+      return null;
+    }
   }
 
   async function signIn(account: api.SessionUser) {

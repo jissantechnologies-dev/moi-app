@@ -92,5 +92,25 @@ export async function migrate(target: pg.Pool = pool): Promise<void> {
     -- The column above landed after the first release, so a database created
     -- before it needs the column added rather than the table created.
     ALTER TABLE entries ADD COLUMN IF NOT EXISTS attachments TEXT NOT NULL DEFAULT '[]';
+
+    -- Google sign-in, added after the first release.
+    --
+    -- password_hash drops NOT NULL because an account created through Google
+    -- has no password at all. A row with neither a hash nor a google_sub could
+    -- never be signed into, so the check keeps that shape out of the table.
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS google_sub TEXT;
+    ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+    CREATE UNIQUE INDEX IF NOT EXISTS users_google_sub ON users (google_sub);
+
+    -- One-time codes for the OAuth redirect. The callback cannot hand the app
+    -- its tokens in the URL — that would put them in history, in logs and in
+    -- the Referer header — so it hands over a short-lived code the app trades
+    -- for the real pair.
+    CREATE TABLE IF NOT EXISTS auth_codes (
+      code_hash  TEXT PRIMARY KEY,
+      user_id    BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at    TIMESTAMPTZ
+    );
   `);
 }

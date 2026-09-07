@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import { attachmentRoutes } from './attachments.ts';
 import { authRoutes } from './auth.ts';
 import { entryRoutes } from './entries.ts';
+import { googleRoutes } from './google.ts';
 
 /**
  * Builds the API with no listening and no migration, so the two entry points
@@ -36,6 +37,7 @@ export function buildApp(): FastifyInstance {
   authRoutes(app);
   entryRoutes(app);
   attachmentRoutes(app);
+  googleRoutes(app);
 
   app.setErrorHandler((error, _req, reply) => {
     app.log.error(error);

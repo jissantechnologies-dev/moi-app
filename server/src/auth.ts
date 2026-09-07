@@ -5,6 +5,7 @@
 import { hash as argonHash, verify as argonVerify } from '@node-rs/argon2';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { pool } from './db.ts';
+import { googleConfigured, redeemAuthCode } from './google.ts';
 import { sendPasswordResetEmail, sendVerificationEmail } from './email.ts';
 import {
   hashToken,
@@ -88,7 +89,7 @@ export function authRoutes(app: FastifyInstance): void {
     const found = await pool.query<{
       id: string;
       email: string;
-      password_hash: string;
+      password_hash: string | null;
       lang: string;
     }>('SELECT id, email, password_hash, lang FROM users WHERE email_lower = $1', [
       email.trim().toLowerCase(),
@@ -96,14 +97,53 @@ export function authRoutes(app: FastifyInstance): void {
     const user = found.rows[0];
 
     // Hash a throwaway when the account is missing, so a wrong email and a wrong
-    // password take comparable time and cannot be told apart by timing.
-    const ok = user
-      ? await argonVerify(user.password_hash, password).catch(() => false)
-      : await argonHash(password).then(() => false);
+    // password take comparable time and cannot be told apart by timing. An
+    // account created through Google has no password at all and takes the same
+    // path, so its existence cannot be probed here either.
+    const ok =
+      user && user.password_hash
+        ? await argonVerify(user.password_hash, password).catch(() => false)
+        : await argonHash(password).then(() => false);
 
     if (!ok || !user) {
       return reply.code(401).send({ error: 'Email or password is incorrect.' });
     }
+
+    return {
+      accessToken: signAccessToken(user.id),
+      refreshToken: await issueRefreshToken(user.id),
+      user: { id: user.id, email: user.email, lang: user.lang },
+    };
+  });
+
+  /**
+   * What the sign-in screen may offer. Google only appears when the server has
+   * credentials for it, the same way mail only sends when SMTP is configured.
+   */
+  app.get('/api/auth/config', async () => ({ google: googleConfigured() }));
+
+  /**
+   * Trades the one-time code from an OAuth redirect for a real session. The
+   * code arrives in the URL, so it is deliberately short-lived and single use;
+   * the tokens it buys never appear there.
+   */
+  app.post('/api/auth/exchange', { config: strict }, async (req, reply) => {
+    const { code } = (req.body ?? {}) as Record<string, unknown>;
+    if (typeof code !== 'string' || !code) {
+      return reply.code(400).send({ error: 'A sign-in code is required.' });
+    }
+
+    const userId = await redeemAuthCode(code);
+    if (!userId) {
+      return reply.code(400).send({ error: 'That sign-in link has expired. Please try again.' });
+    }
+
+    const found = await pool.query<{ id: string; email: string; lang: string }>(
+      'SELECT id, email, lang FROM users WHERE id = $1',
+      [userId]
+    );
+    const user = found.rows[0];
+    if (!user) return reply.code(400).send({ error: 'That account no longer exists.' });
 
     return {
       accessToken: signAccessToken(user.id),

@@ -229,3 +229,30 @@ export async function attachmentDataUri(id: string): Promise<string> {
 export async function deleteAttachment(id: string): Promise<void> {
   await request(`/api/attachments/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
+
+export type AuthConfig = { google: boolean };
+
+/** What the sign-in screen may offer; Google appears only if the server has keys. */
+export async function authConfig(): Promise<AuthConfig> {
+  const res = await request('/api/auth/config', { method: 'GET' });
+  return { google: Boolean(res?.google) };
+}
+
+/** Where the browser goes to start Google sign-in. A full navigation, not a popup. */
+export function googleSignInUrl(): string {
+  return `${BASE}/api/auth/google/start`;
+}
+
+/**
+ * Trades the one-time code an OAuth redirect leaves in the URL for a session.
+ * The code is single use and expires in two minutes, which is what makes it
+ * safe for it to have travelled in a URL at all.
+ */
+export async function exchangeAuthCode(code: string): Promise<SessionUser> {
+  const res = await request('/api/auth/exchange', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+  await storeTokens(res.accessToken, res.refreshToken);
+  return res.user as SessionUser;
+}
