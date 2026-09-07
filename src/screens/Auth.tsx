@@ -104,6 +104,7 @@ export default function Auth({
         ]}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={styles.centred}>
         <Text style={styles.title}>{L.appName}</Text>
         <Text style={styles.tagline}>{L.authIntro}</Text>
 
@@ -158,6 +159,7 @@ export default function Auth({
         <Pressable onPress={onSkip}>
           <Text style={styles.linkSoft}>{L.continueOffline}</Text>
         </Pressable>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -167,8 +169,16 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: space(5),
     flexGrow: 1,
-    justifyContent: 'center',
   },
+  /**
+   * Centres the card without breaking scrolling. justifyContent: 'center' on a
+   * scroll container looks the same until the content is taller than the
+   * window: it then overflows off both ends, and nothing can scroll above the
+   * top of a scroll area, so the title becomes unreachable on a short screen.
+   * Auto margins collapse to zero once the content stops fitting, so the form
+   * simply starts at the top and scrolls.
+   */
+  centred: { width: '100%', marginVertical: 'auto' },
   title: {
     fontSize: 30,
     fontWeight: '700',
