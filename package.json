@@ -37,7 +37,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "tsx src/backupFormat.test.ts && tsx src/dates.test.ts",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p server"
+    "typecheck": "npm run build:server && tsc --noEmit && tsc --noEmit -p server",
+    "build:server": "tsc -p server/tsconfig.build.json"
   },
   "private": true
 }

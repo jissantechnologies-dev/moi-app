@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# Compiled server (built by npm run build:server)
+server/dist/
+
 # Vercel
 .vercel/
 
@@ -47,3 +50,5 @@ dist/
 
 server/node_modules/
 deploy/.env
+.vercel
+.env*
