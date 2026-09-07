@@ -1,12 +1,11 @@
 import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as api from './src/api';
 import MenuSheet, { MenuAction } from './src/components/MenuSheet';
-import { exportBackup, exportCsv, parseBackup } from './src/export';
+import { exportBackup, exportCsv, parseBackup, readPickedFile } from './src/export';
 import { t } from './src/i18n';
 import Auth from './src/screens/Auth';
 import EntryForm from './src/screens/EntryForm';
@@ -123,7 +122,7 @@ export default function App() {
     });
     if (picked.canceled || !picked.assets?.length) return;
 
-    const restored = parseBackup(await new File(picked.assets[0].uri).text());
+    const restored = parseBackup(await readPickedFile(picked.assets[0].uri));
     if (!restored) {
       Alert.alert(L.restoreBad);
       return;
