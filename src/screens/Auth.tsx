@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as api from '../api';
-import { Button, Field } from '../components/ui';
+import { Button, Field, PasswordField } from '../components/ui';
 import { t } from '../i18n';
 import { colors, radius, space } from '../theme';
 import { Lang } from '../types';
@@ -117,11 +117,12 @@ export default function Auth({
             keyboardType="email-address"
             textContentType="emailAddress"
           />
-          <Field
+          <PasswordField
             label={L.password}
+            revealLabel={L.showPassword}
+            hideLabel={L.hidePassword}
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
             autoCapitalize="none"
             textContentType={mode === 'signUp' ? 'newPassword' : 'password'}
           />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -22,6 +22,45 @@ export function Field({
         {...props}
         style={[styles.input, props.multiline && styles.inputMulti, props.style]}
       />
+    </View>
+  );
+}
+
+/**
+ * A password box with an eye that reveals what was typed. The slash across the
+ * eye is a rotated line rather than a second glyph, because the "no entry" and
+ * "crossed eye" emoji render inconsistently across platforms and one of them
+ * is a monkey on several of them.
+ */
+export function PasswordField({
+  label,
+  revealLabel,
+  hideLabel,
+  ...props
+}: TextInputProps & { label: string; revealLabel: string; hideLabel: string }) {
+  const [shown, setShown] = useState(false);
+  return (
+    <View style={{ marginBottom: space(4) }}>
+      <Text style={styles.label}>{label}</Text>
+      <View>
+        <TextInput
+          placeholderTextColor={colors.textSoft}
+          {...props}
+          secureTextEntry={!shown}
+          style={[styles.input, styles.inputWithEye, props.style]}
+        />
+        <Pressable
+          onPress={() => setShown((v) => !v)}
+          // The eye is small; widen what the finger has to hit.
+          hitSlop={space(2)}
+          accessibilityRole="button"
+          accessibilityLabel={shown ? hideLabel : revealLabel}
+          style={styles.eyeButton}
+        >
+          <Text style={styles.eyeGlyph}>{'👁'}</Text>
+          {shown ? <View style={styles.eyeSlash} /> : null}
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -123,6 +162,26 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   inputMulti: { minHeight: 84, textAlignVertical: 'top' },
+  // Room for the eye, so a long password never runs underneath it.
+  inputWithEye: { paddingRight: space(11) },
+  eyeButton: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: space(11),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eyeGlyph: { fontSize: 17, opacity: 0.75 },
+  eyeSlash: {
+    position: 'absolute',
+    width: 24,
+    height: 1.5,
+    borderRadius: 1,
+    backgroundColor: colors.textSoft,
+    transform: [{ rotate: '-45deg' }],
+  },
   segment: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
