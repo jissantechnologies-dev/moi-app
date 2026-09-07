@@ -1,8 +1,21 @@
 import pg from 'pg';
 
+/**
+ * One long-lived container can hold a real pool. Serverless cannot: every
+ * instance opens its own, so a pool of 10 across 20 warm instances asks Neon
+ * for 200 connections and exhausts it. There the answer is one connection per
+ * instance, pointed at Neon's pgbouncer endpoint (the -pooler host) which does
+ * the actual pooling on their side.
+ */
+const serverless = Boolean(process.env.VERCEL);
+
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 10,
+  max: serverless ? 1 : 10,
+  // Do not hold a socket across invocations: a frozen instance's connection is
+  // dead to us but still counted by the server.
+  idleTimeoutMillis: serverless ? 10000 : 30000,
+  connectionTimeoutMillis: 10000,
 });
 
 /**

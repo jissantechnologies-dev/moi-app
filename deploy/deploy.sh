@@ -34,4 +34,4 @@ echo "==> Swapping in and restarting"
   && docker compose restart web \
   && rm -rf dist.old"
 
-echo "==> Live at https://moi.jissantechnologies.online/"
+echo "==> Live at https://moi.gvndemo.com/"

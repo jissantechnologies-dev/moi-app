@@ -9,7 +9,7 @@ import { Entry } from './types';
 const BASE =
   typeof window !== 'undefined' && window.location?.origin
     ? ''
-    : 'https://moi.jissantechnologies.online';
+    : 'https://moi.gvndemo.com';
 
 const ACCESS_KEY = 'moi.auth.access.v1';
 const REFRESH_KEY = 'moi.auth.refresh.v1';

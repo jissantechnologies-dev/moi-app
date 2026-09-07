@@ -125,6 +125,52 @@ eas build -p android --profile preview
 EAS builds in the cloud and gives you an APK download link. No Android Studio
 needed.
 
+
+## Deploying the web app
+
+There are two supported targets and one codebase behind both. `server/src/app.ts`
+builds the Fastify instance; only the entry point differs.
+
+| | Vercel + Neon | VPS + Docker |
+|---|---|---|
+| Entry point | `api/[...path].ts` | `server/src/index.ts` |
+| Static site | `vercel.json` build | nginx + `deploy/site.conf` |
+| Database | Neon | `db` service in compose |
+| TLS | automatic | Traefik + Let's Encrypt |
+| Schema | `npm run migrate`, by hand | applied on container boot |
+
+### Vercel
+
+1. Push to GitHub, then import the repo at vercel.com. `vercel.json` already
+   sets the build (`npx expo export --platform web`) and output (`dist`).
+2. Create a Neon project. Take the **pooled** connection string — the host with
+   `-pooler` in it. The direct one exhausts its connection limit once more than
+   a handful of function instances are warm.
+3. Set the environment variables: `DATABASE_URL`, `JWT_SECRET`, `APP_URL`, and
+   the `SMTP_*` set. `JWT_SECRET` is read at module load, so a missing one
+   fails every cold start immediately rather than at the first login.
+4. Apply the schema once, from your machine:
+
+   ```
+   cd server && DATABASE_URL='<neon pooled url>' npm run migrate
+   ```
+
+5. Add the domain in Vercel, then point it there from your DNS provider with a
+   **CNAME to `cname.vercel-dns.com`** (not an A record).
+
+Note that `@fastify/rate-limit` counts in memory, so on Vercel the limit is
+per-instance and resets on every cold start. Vercel's own edge protection is
+what actually bounds abuse there.
+
+Serverless SMTP is slow and often blocked outright. If mail misbehaves, move
+`server/src/email.ts` to an HTTP mail API.
+
+### VPS
+
+`./deploy/deploy.sh` builds the web export, ships it to `/opt/moi-book`, swaps
+the directory atomically and restarts compose. Set `VPS_HOST` to the server.
+Secrets live in `/opt/moi-book/.env`; see `deploy/.env.example`.
+
 ## Project layout
 
 ```
@@ -143,6 +189,11 @@ src/components/Calendar.tsx   month-grid date picker
 src/contacts.ts            system contact picker
 src/dates.test.ts          assertions for the calendar and phone tidying
 metro.config.js            enables package exports (needed by expo-contacts)
+vercel.json                static build, SPA rewrites, COOP/COEP headers
+api/[...path].ts           serverless entry: hands /api/* to the Fastify app
+server/src/app.ts          builds the API, shared by both entry points
+server/src/index.ts        Docker entry: migrate, then listen
+server/src/migrate.ts      applies the schema and exits
 src/screens/Home.tsx       list, search, tabs, totals
 src/screens/EntryForm.tsx  add / edit / delete
 src/screens/PersonDetail.tsx  one person's history and balance

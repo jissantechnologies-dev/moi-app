@@ -1,4 +1,8 @@
-import argon2 from 'argon2';
+// @node-rs/argon2 ships prebuilt binaries per platform, so it needs no compiler
+// at install time. The original `argon2` package builds through node-gyp, which
+// a serverless build image has no toolchain for. Same argon2id algorithm and
+// same PHC hash string, so hashes written by either verify under the other.
+import { hash as argonHash, verify as argonVerify } from '@node-rs/argon2';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { pool } from './db.ts';
 import { sendPasswordResetEmail, sendVerificationEmail } from './email.ts';
@@ -46,7 +50,7 @@ export function authRoutes(app: FastifyInstance): void {
     }
 
     const clean = email.trim();
-    const hash = await argon2.hash(password, { type: argon2.argon2id });
+    const hash = await argonHash(password);
 
     const inserted = await pool.query<{ id: string }>(
       `INSERT INTO users (email, email_lower, password_hash)
@@ -94,8 +98,8 @@ export function authRoutes(app: FastifyInstance): void {
     // Hash a throwaway when the account is missing, so a wrong email and a wrong
     // password take comparable time and cannot be told apart by timing.
     const ok = user
-      ? await argon2.verify(user.password_hash, password).catch(() => false)
-      : await argon2.hash(password, { type: argon2.argon2id }).then(() => false);
+      ? await argonVerify(user.password_hash, password).catch(() => false)
+      : await argonHash(password).then(() => false);
 
     if (!ok || !user) {
       return reply.code(401).send({ error: 'Email or password is incorrect.' });
@@ -237,7 +241,7 @@ export function authRoutes(app: FastifyInstance): void {
       return reply.code(400).send({ error: 'That link is invalid or expired.' });
     }
 
-    const hash = await argon2.hash(password, { type: argon2.argon2id });
+    const hash = await argonHash(password);
     await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [
       hash,
       row.user_id,

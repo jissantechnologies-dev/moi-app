@@ -4,6 +4,8 @@
   "main": "index.ts",
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",
+    "@fastify/rate-limit": "^10.2.1",
+    "@node-rs/argon2": "^2.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "expo": "~57.0.20",
     "expo-contacts": "~57.0.4",
@@ -12,6 +14,9 @@
     "expo-sharing": "~57.0.18",
     "expo-sqlite": "~57.0.2",
     "expo-status-bar": "~57.0.1",
+    "fastify": "^5.2.0",
+    "nodemailer": "^6.9.16",
+    "pg": "^8.13.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -20,6 +25,8 @@
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
+    "@types/nodemailer": "^6.4.17",
+    "@types/pg": "^8.11.10",
     "@types/react": "~19.2.2",
     "tsx": "^4.23.13",
     "typescript": "~6.0.3"
@@ -30,7 +37,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "test": "tsx src/backupFormat.test.ts && tsx src/dates.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p server"
   },
   "private": true
 }

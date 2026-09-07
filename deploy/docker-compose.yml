@@ -14,7 +14,7 @@ services:
       - ./site.conf:/etc/nginx/conf.d/default.conf:ro
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.moibook.rule=Host(`moi.jissantechnologies.online`)"
+      - "traefik.http.routers.moibook.rule=Host(`moi.gvndemo.com`)"
       - "traefik.http.routers.moibook.entrypoints=websecure"
       - "traefik.http.routers.moibook.tls=true"
       - "traefik.http.routers.moibook.tls.certresolver=letsencrypt"
@@ -31,7 +31,7 @@ services:
     environment:
       DATABASE_URL: postgres://moi:${POSTGRES_PASSWORD}@db:5432/moi
       JWT_SECRET: ${JWT_SECRET}
-      APP_URL: https://moi.jissantechnologies.online
+      APP_URL: https://moi.gvndemo.com
       # Sign-up confirmation and password reset mail. Without these the server
       # logs the link instead of sending it.
       SMTP_HOST: ${SMTP_HOST:-}
@@ -41,7 +41,7 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.moibookapi.rule=Host(`moi.jissantechnologies.online`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.moibookapi.rule=Host(`moi.gvndemo.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.moibookapi.entrypoints=websecure"
       - "traefik.http.routers.moibookapi.tls=true"
       - "traefik.http.routers.moibookapi.tls.certresolver=letsencrypt"

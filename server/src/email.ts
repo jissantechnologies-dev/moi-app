@@ -1,6 +1,6 @@
 import nodemailer from 'nodemailer';
 
-const APP_URL = process.env.APP_URL ?? 'https://moi.jissantechnologies.online';
+const APP_URL = process.env.APP_URL ?? 'https://moi.gvndemo.com';
 
 /**
  * SMTP is optional. With no credentials configured the link is written to the

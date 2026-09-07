@@ -1,10 +1,7 @@
-# argon2 is a native module, so it needs a toolchain to build. Compiling in a
-# separate stage keeps the compiler out of the image that actually runs.
+# @node-rs/argon2 ships prebuilt binaries, so nothing here needs a compiler.
+# Installing in a separate stage still keeps npm's cache out of the final image.
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends python3 make g++ \
-    && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json* ./
 RUN npm install --omit=dev
 

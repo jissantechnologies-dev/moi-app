@@ -9,6 +9,7 @@
   },
   "exclude": [
     "server",
+    "api",
     "dist",
     "node_modules"
   ]
