@@ -10,9 +10,11 @@ import {
   fromISODate,
   monthGrid,
   normalizeNumber,
+  totalsOf,
   sortByDate,
   toISODate,
 } from './format';
+import { normalizeEntry } from './types';
 
 // --- Month grid --------------------------------------------------------
 // February 2026 starts on a Sunday, so there are no leading blanks.
@@ -86,5 +88,41 @@ assert.deepEqual(
   ['b', 'a', 'c'],
   'the caller\u2019s array is left untouched'
 );
+
+// --- totals: cash and gold accumulate separately, and never double-count ---
+
+const gift = (o: any) => normalizeEntry(o);
+
+// One person, two gifts at different functions: they add up per unit.
+const separate = totalsOf([
+  gift({ id: 'c', direction: 'given', giftKind: 'cash', amount: 5000 }),
+  gift({ id: 'g', direction: 'given', giftKind: 'gold', goldGrams: 8, amount: 0 }),
+]);
+assert.equal(separate.given, 5000, 'cash gifts accumulate');
+assert.equal(separate.goldGiven, 8, 'gold grams accumulate alongside cash');
+
+// The rupee figure on a gold gift is an estimate of the same chain already
+// counted in grams, so it must stay out of the cash total.
+const valued = totalsOf([
+  gift({ id: 'c', direction: 'given', giftKind: 'cash', amount: 5000 }),
+  gift({ id: 'g', direction: 'given', giftKind: 'gold', goldGrams: 8, amount: 60000 }),
+]);
+assert.equal(valued.given, 5000, 'a gold gift’s estimated worth is not cash');
+assert.equal(valued.goldGiven, 8, 'the gold is still counted in grams');
+
+// Received works the same way, on the other side of the ledger.
+const got = totalsOf([
+  gift({ id: 'r', direction: 'received', giftKind: 'gold', goldGrams: 4, amount: 30000 }),
+]);
+assert.equal(got.received, 0, 'gold worth stays out of the received cash total');
+assert.equal(got.goldReceived, 4, 'received gold is counted in grams');
+
+// An item gift has no gram figure, so its rupee value is all it has.
+const item = totalsOf([
+  gift({ id: 'i', direction: 'given', giftKind: 'item', amount: 1500 }),
+]);
+assert.equal(item.given, 1500, 'an item gift keeps its rupee value');
+
+console.log('totals: all assertions passed');
 
 console.log('history ordering: all assertions passed');

@@ -26,13 +26,25 @@ export const emptyTotals = (): Totals => ({
   goldReceived: 0,
 });
 
+/**
+ * A gold gift's rupee figure is only what it was thought to be worth on the
+ * day, and the gift is already counted in the gram total. Adding it to the
+ * cash total as well would count the same chain twice — once as 8 g and again
+ * as Rs. 60,000 — and make the rupee balance meaningless.
+ *
+ * An 'item' gift keeps its amount, because grams do not describe it and the
+ * rupee figure is the only measure it has.
+ */
 export function addToTotals(t: Totals, e: Entry): void {
+  const isGold = e.giftKind === 'gold';
+  const cash = isGold ? 0 : e.amount;
+
   if (e.direction === 'given') {
-    t.given += e.amount;
-    t.goldGiven += e.giftKind === 'gold' ? e.goldGrams : 0;
+    t.given += cash;
+    t.goldGiven += isGold ? e.goldGrams : 0;
   } else {
-    t.received += e.amount;
-    t.goldReceived += e.giftKind === 'gold' ? e.goldGrams : 0;
+    t.received += cash;
+    t.goldReceived += isGold ? e.goldGrams : 0;
   }
 }
 
