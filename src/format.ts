@@ -113,6 +113,36 @@ export function normalizeNumber(raw: string): string {
   return digits.startsWith('+') ? '+' + digits.slice(1).replace(/\+/g, '') : digits.replace(/\+/g, '');
 }
 
+/**
+ * Turns a stored phone number into the digits wa.me needs: full international
+ * form, no plus, no spaces. Returns null when the number cannot be made sense
+ * of, which is the signal to hide the invite button rather than open WhatsApp
+ * on a wrong number.
+ *
+ * Numbers in this book are typed however people have them written down, so a
+ * local Indian number is assumed when no country code is present — the app is
+ * used for Tamil weddings, and 10 digits there means +91. A number that
+ * already carries a country code is left alone.
+ */
+export function whatsappNumber(raw: string, defaultCountry = '91'): string | null {
+  const tidied = normalizeNumber(raw);
+  const hadPlus = tidied.startsWith('+');
+  let digits = tidied.replace(/\D/g, '');
+  if (!digits) return null;
+
+  if (!hadPlus) {
+    // 00 is the other way of writing +, and a single leading 0 is a domestic
+    // trunk prefix that has no place in an international number.
+    if (digits.startsWith('00')) digits = digits.slice(2);
+    else if (digits.startsWith('0')) digits = defaultCountry + digits.replace(/^0+/, '');
+    else if (digits.length === 10) digits = defaultCountry + digits;
+  }
+
+  // E.164 allows 15 digits; anything under 8 is too short to be a real number.
+  if (digits.length < 8 || digits.length > 15) return null;
+  return digits;
+}
+
 export function formatDate(iso: string, lang: Lang): string {
   if (!iso) return '';
   const d = fromISODate(iso);

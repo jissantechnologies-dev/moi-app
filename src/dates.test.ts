@@ -11,6 +11,7 @@ import {
   monthGrid,
   normalizeNumber,
   totalsOf,
+  whatsappNumber,
   sortByDate,
   toISODate,
 } from './format';
@@ -124,5 +125,21 @@ const item = totalsOf([
 assert.equal(item.given, 1500, 'an item gift keeps its rupee value');
 
 console.log('totals: all assertions passed');
+
+// --- wa.me numbers ---
+
+assert.equal(whatsappNumber('+91 98765 43210'), '919876543210', 'spaces and plus are dropped');
+assert.equal(whatsappNumber('9876543210'), '919876543210', 'a bare 10-digit number gets +91');
+assert.equal(whatsappNumber('09876543210'), '919876543210', 'the trunk 0 is replaced by the country code');
+assert.equal(whatsappNumber('0091 98765 43210'), '919876543210', '00 is the other way of writing +');
+assert.equal(whatsappNumber('+44 7700 900123'), '447700900123', 'a foreign number keeps its own code');
+assert.equal(whatsappNumber('919876543210'), '919876543210', 'a number already in full form is untouched');
+
+assert.equal(whatsappNumber(''), null, 'an empty number has nothing to invite');
+assert.equal(whatsappNumber('12345'), null, 'too short to be a phone number');
+assert.equal(whatsappNumber('1234567890123456'), null, 'longer than E.164 allows');
+assert.equal(whatsappNumber('not a number'), null, 'letters are not a phone number');
+
+console.log('whatsapp numbers: all assertions passed');
 
 console.log('history ordering: all assertions passed');

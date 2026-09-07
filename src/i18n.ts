@@ -116,6 +116,10 @@ const en = {
   signOut: 'Sign out',
   email: 'Email address',
   password: 'Password',
+  inviteWhatsApp: 'Invite on WhatsApp',
+  inviteFailed: 'WhatsApp could not be opened for that number.',
+  inviteMessage: (url: string) =>
+    `I have noted our moi in Moi Book. You can keep your own book of gifts given and received here: ${url}`,
   attachments: 'Bills & photos',
   attachment: 'Attachment',
   attachCamera: 'Camera',
@@ -260,6 +264,10 @@ const ta: Dict = {
   signOut: 'வெளியேறு',
   email: 'மின்னஞ்சல் முகவரி',
   password: 'கடவுச்சொல்',
+  inviteWhatsApp: 'WhatsApp-ல் அழைக்கவும்',
+  inviteFailed: 'அந்த எண்ணுக்கு WhatsApp திறக்க முடியவில்லை.',
+  inviteMessage: (url: string) =>
+    `நம் மொய்யை Moi Book-ல் குறித்து வைத்துள்ளேன். கொடுத்த, வாங்கிய மொய்களை நீங்களும் இங்கே வைத்துக்கொள்ளலாம்: ${url}`,
   attachments: 'ரசீது & படங்கள்',
   attachment: 'இணைப்பு',
   attachCamera: 'கேமரா',

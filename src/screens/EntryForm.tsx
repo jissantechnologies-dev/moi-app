@@ -15,6 +15,7 @@ import Calendar from '../components/Calendar';
 import { Button, Field, Segmented } from '../components/ui';
 import { contactsSupported, pickContact } from '../contacts';
 import { formatDate, toISODate } from '../format';
+import { canInvite, inviteOnWhatsApp } from '../invite';
 import { t } from '../i18n';
 import { colors, radius, space } from '../theme';
 import { Attachment, Carat, CARATS, Direction, Entry, GiftKind, Lang } from '../types';
@@ -124,6 +125,14 @@ export default function EntryForm({
     }
   }
 
+  /**
+   * Hands the invite to the person's own WhatsApp rather than sending it for
+   * them: see src/invite.ts for why that distinction matters.
+   */
+  async function sendInvite() {
+    if (!(await inviteOnWhatsApp(phone, lang))) Alert.alert(L.inviteFailed);
+  }
+
   function confirmDelete() {
     if (!initial || !onDelete) return;
     Alert.alert(L.deleteTitle, L.deleteBody, [
@@ -211,6 +220,16 @@ export default function EntryForm({
             </Pressable>
           ) : null}
         </View>
+
+        {canInvite(phone) ? (
+          <Pressable
+            onPress={sendInvite}
+            style={({ pressed }) => [styles.inviteBtn, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={styles.inviteText}>{L.inviteWhatsApp}</Text>
+          </Pressable>
+        ) : null}
+
         <Field
           label={L.place}
           value={place}
@@ -342,6 +361,18 @@ const styles = StyleSheet.create({
     marginBottom: space(4),
   },
   contactsBtnText: { color: colors.primary, fontWeight: '700', fontSize: 14 },
+  inviteBtn: {
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: space(2),
+    paddingHorizontal: space(3),
+    // Sits under the phone field, which already carries the row's spacing.
+    marginTop: -space(2),
+    marginBottom: space(4),
+  },
+  inviteText: { color: colors.text, fontWeight: '600', fontSize: 14 },
   label: {
     fontSize: 13,
     fontWeight: '600',
