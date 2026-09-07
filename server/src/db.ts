@@ -19,11 +19,14 @@ export const pool = new pg.Pool({
 });
 
 /**
- * Schema is applied on boot. Statements are all IF NOT EXISTS, so a restart is
- * a no-op and a fresh database gets built in one go.
+ * Statements are all IF NOT EXISTS, so re-running is a no-op and a fresh
+ * database gets built in one go.
+ *
+ * Takes the pool to run against because DDL should not go through pgbouncer:
+ * migrate.ts points this at Neon's direct endpoint instead.
  */
-export async function migrate(): Promise<void> {
-  await pool.query(`
+export async function migrate(target: pg.Pool = pool): Promise<void> {
+  await target.query(`
     CREATE TABLE IF NOT EXISTS users (
       id             BIGSERIAL PRIMARY KEY,
       email          TEXT NOT NULL,

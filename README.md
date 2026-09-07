@@ -143,16 +143,16 @@ builds the Fastify instance; only the entry point differs.
 
 1. Push to GitHub, then import the repo at vercel.com. `vercel.json` already
    sets the build (`npx expo export --platform web`) and output (`dist`).
-2. Create a Neon project. Take the **pooled** connection string — the host with
-   `-pooler` in it. The direct one exhausts its connection limit once more than
-   a handful of function instances are warm.
-3. Set the environment variables: `DATABASE_URL`, `JWT_SECRET`, `APP_URL`, and
-   the `SMTP_*` set. `JWT_SECRET` is read at module load, so a missing one
-   fails every cold start immediately rather than at the first login.
-4. Apply the schema once, from your machine:
+2. Add Neon from the project's Storage tab. The integration sets
+   `DATABASE_URL` (pooled, via pgbouncer — what the API wants) and
+   `DATABASE_URL_UNPOOLED` (direct — what migrations want) by itself.
+3. Set the rest by hand: `JWT_SECRET`, `APP_URL`, and the `SMTP_*` set.
+   `JWT_SECRET` is read at module load, so a missing one fails every cold
+   start immediately rather than at the first login.
+4. Apply the schema once, from your machine, using the **direct** URL:
 
    ```
-   cd server && DATABASE_URL='<neon pooled url>' npm run migrate
+   cd server && DATABASE_URL_UNPOOLED='<neon direct url>' npm run migrate
    ```
 
 5. Add the domain in Vercel, then point it there from your DNS provider with a
