@@ -14,6 +14,7 @@
     "expo-file-system": "~57.0.6",
     "expo-image-picker": "~57.0.16",
     "expo-sharing": "~57.0.18",
+    "expo-splash-screen": "~57.0.8",
     "expo-sqlite": "~57.0.2",
     "expo-status-bar": "~57.0.1",
     "fastify": "^5.2.0",

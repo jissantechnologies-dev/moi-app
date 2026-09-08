@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as api from '../api';
-import { Button, Field, PasswordField } from '../components/ui';
+import { Button, Checkbox, Field, PasswordField } from '../components/ui';
 import { t } from '../i18n';
 import { colors, radius, space } from '../theme';
 import { Lang } from '../types';
@@ -36,6 +36,7 @@ export default function Auth({
   const [mode, setMode] = useState<Mode>('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -79,7 +80,7 @@ export default function Auth({
         setNotice(message);
         setMode('signIn');
       } else {
-        onSignedIn(await api.login(email.trim(), password));
+        onSignedIn(await api.login(email.trim(), password, remember));
       }
     } catch (err) {
       setError(
@@ -144,6 +145,14 @@ export default function Auth({
             autoCapitalize="none"
             textContentType={mode === 'signUp' ? 'newPassword' : 'password'}
           />
+
+          {mode === 'signIn' ? (
+            <Checkbox
+              label={L.rememberMe}
+              checked={remember}
+              onChange={setRemember}
+            />
+          ) : null}
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {notice ? <Text style={styles.notice}>{notice}</Text> : null}

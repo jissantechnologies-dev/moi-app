@@ -218,3 +218,55 @@ const styles = StyleSheet.create({
   },
   avatarText: { fontSize: 15, fontWeight: '700' },
 });
+
+export function Checkbox({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <Pressable
+      onPress={() => onChange(!checked)}
+      accessibilityRole="checkbox"
+      // react-native-web does not map accessibilityState, so the ARIA prop is
+      // given directly; React Native maps it to the native state itself.
+      aria-checked={checked}
+      accessibilityState={{ checked }}
+      accessibilityLabel={label}
+      style={({ pressed }) => [checkboxStyles.row, pressed && { opacity: 0.7 }]}
+      // Widens the tap target past the 18pt box without moving the label.
+      hitSlop={8}
+    >
+      <View style={[checkboxStyles.box, checked && checkboxStyles.boxOn]}>
+        {checked ? <Text style={checkboxStyles.tick}>✓</Text> : null}
+      </View>
+      <Text style={checkboxStyles.label}>{label}</Text>
+    </Pressable>
+  );
+}
+
+const checkboxStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: space(2),
+    marginBottom: space(1),
+  },
+  box: {
+    width: 18,
+    height: 18,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  boxOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tick: { color: '#FFFFFF', fontSize: 12, fontWeight: '900', lineHeight: 14 },
+  label: { fontSize: 14, color: colors.textSoft, marginLeft: space(2.5) },
+});

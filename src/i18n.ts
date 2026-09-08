@@ -143,6 +143,7 @@ const en = {
   noAccount: 'New here? Create an account',
   haveAccount: 'Already have an account? Sign in',
   forgotPassword: 'Forgotten your password?',
+  rememberMe: 'Keep me signed in',
   resetSent: 'Check your email for the reset link.',
   checkEmail: 'Check your email for the confirmation link.',
   authFailed: 'Email or password is incorrect.',
@@ -151,6 +152,12 @@ const en = {
   passwordTooShort: 'Password must be at least 8 characters.',
   emailInvalid: 'Enter a valid email address.',
   continueOffline: 'Use on this device only',
+
+  installTitle: 'Install Moi Book',
+  installBody: 'Add it to your home screen to open it like an app and use it without a connection.',
+  installAction: 'Install',
+  installLater: 'Not now',
+  installIosBody: 'Tap the Share button below, then choose “Add to Home Screen”.',
 };
 
 type Dict = typeof en;
@@ -297,6 +304,7 @@ const ta: Dict = {
   noAccount: 'புதியவரா? கணக்கு உருவாக்குங்கள்',
   haveAccount: 'ஏற்கனவே கணக்கு உள்ளதா? உள்நுழையுங்கள்',
   forgotPassword: 'கடவுச்சொல் மறந்துவிட்டதா?',
+  rememberMe: 'என்னை நினைவில் வைத்திரு',
   resetSent: 'மீட்டமைப்பு இணைப்புக்கு மின்னஞ்சலைப் பாருங்கள்.',
   checkEmail: 'உறுதிப்படுத்தும் இணைப்புக்கு மின்னஞ்சலைப் பாருங்கள்.',
   authFailed: 'மின்னஞ்சல் அல்லது கடவுச்சொல் தவறு.',
@@ -305,6 +313,12 @@ const ta: Dict = {
   passwordTooShort: 'கடவுச்சொல் குறைந்தது 8 எழுத்துகள் இருக்க வேண்டும்.',
   emailInvalid: 'சரியான மின்னஞ்சல் முகவரியை உள்ளிடுங்கள்.',
   continueOffline: 'இந்த சாதனத்தில் மட்டும் பயன்படுத்து',
+
+  installTitle: 'Moi Book-ஐ நிறுவுங்கள்',
+  installBody: 'முகப்புத் திரையில் சேர்த்தால் ஒரு செயலி போலத் திறக்கும், இணையம் இல்லாமலும் வேலை செய்யும்.',
+  installAction: 'நிறுவு',
+  installLater: 'இப்போது வேண்டாம்',
+  installIosBody: 'கீழே உள்ள பகிர் பொத்தானை அழுத்தி “Add to Home Screen” என்பதைத் தேர்ந்தெடுக்கவும்.',
 };
 
 export const dicts: Record<Lang, Dict> = { en, ta };

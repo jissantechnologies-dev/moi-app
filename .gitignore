@@ -52,3 +52,6 @@ server/node_modules/
 deploy/.env
 .vercel
 .env*
+
+# Google Play submission key (never commit)
+google-play-service-account.json

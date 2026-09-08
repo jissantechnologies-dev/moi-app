@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+    <title>Moi Book</title>
+    <meta name="description" content="Keep a record of the gifts and money given and received at weddings, funerals and family occasions." />
+
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#FBF7F1" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Moi Book" />
+
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        overflow: hidden;
+        background-color: #FBF7F1;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+
+    <script>
+      // Chrome fires beforeinstallprompt before React has mounted, and the event
+      // is only usable if its default is prevented synchronously. It is stashed
+      // here so the in-app banner can present it whenever it renders.
+      window.__moiInstall = { event: null };
+      window.addEventListener('beforeinstallprompt', function (event) {
+        event.preventDefault();
+        window.__moiInstall.event = event;
+        window.dispatchEvent(new Event('moi:installavailable'));
+      });
+      window.addEventListener('appinstalled', function () {
+        window.__moiInstall.event = null;
+        window.dispatchEvent(new Event('moi:installed'));
+      });
+
+      // Registered from the document rather than the app bundle so that a
+      // returning visitor still gets the worker if the bundle fails to load.
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/service-worker.js').catch(function (error) {
+            console.error('Service worker registration failed', error);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

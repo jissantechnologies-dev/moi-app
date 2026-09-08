@@ -7,12 +7,16 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
+      "bundleIdentifier": "com.gvndemo.moibook",
+      "buildNumber": "1",
       "supportsTablet": true,
       "infoPlist": {
         "NSContactsUsageDescription": "Moi Book uses your contacts so you can pick a person instead of typing their phone number."
       }
     },
     "android": {
+      "package": "com.gvndemo.moibook",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FBF7F1",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -30,6 +34,23 @@
         "expo-contacts",
         {
           "contactsPermission": "Moi Book uses your contacts so you can pick a person instead of typing their phone number."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Moi Book uses your photos so you can attach a picture to an entry.",
+          "cameraPermission": "Moi Book uses your camera so you can photograph a gift or a note and attach it to an entry.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#FBF7F1"
         }
       ],
       "expo-sqlite"

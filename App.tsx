@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as api from './src/api';
+import InstallPrompt from './src/components/InstallPrompt';
 import MenuSheet, { MenuAction } from './src/components/MenuSheet';
 import { exportBackup, exportCsv, parseBackup, readPickedFile } from './src/export';
 import { t } from './src/i18n';
@@ -288,6 +289,7 @@ export default function App() {
         onSelect={runMenuAction}
         onClose={() => setMenuOpen(false)}
       />
+      <InstallPrompt lang={lang} />
     </SafeAreaProvider>
   );
 }

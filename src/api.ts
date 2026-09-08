@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { Attachment, Entry } from './types';
 
 /**
@@ -13,6 +14,56 @@ const BASE =
 
 const ACCESS_KEY = 'moi.auth.access.v1';
 const REFRESH_KEY = 'moi.auth.refresh.v1';
+/** Marks a stored session as one the user asked to be remembered. */
+const REMEMBER_KEY = 'moi.auth.remember.v1';
+
+/**
+ * Where a signed-in session is kept.
+ *
+ * Remembering a sign-in writes to AsyncStorage, which outlives the browser or
+ * the app. Declining writes to sessionStorage instead, so the session dies with
+ * the tab. Native has no sessionStorage; there the tokens stay in memory only,
+ * which ends the session when the app is closed.
+ */
+const scoped = {
+  store(): Storage | null {
+    if (Platform.OS !== 'web') return null;
+    try {
+      return globalThis.sessionStorage ?? null;
+    } catch {
+      // Blocked site data can make even touching sessionStorage throw.
+      return null;
+    }
+  },
+  read(key: string): string | null {
+    try {
+      return this.store()?.getItem(key) ?? null;
+    } catch {
+      return null;
+    }
+  },
+  write(key: string, value: string): void {
+    try {
+      this.store()?.setItem(key, value);
+    } catch {
+      // Memory still holds the tokens, so the current session keeps working.
+    }
+  },
+  remove(key: string): void {
+    try {
+      this.store()?.removeItem(key);
+    } catch {
+      // Nothing to recover; the tokens are cleared from memory regardless.
+    }
+  },
+};
+
+/**
+ * Whether the live session should outlive the browser or app. Restored by
+ * loadSession so that a token refresh writes back to whichever store the
+ * session was originally signed in to.
+ */
+let persistSession = true;
 
 export type SessionUser = { id: string; email: string; lang?: string };
 
@@ -28,28 +79,62 @@ let accessToken: string | null = null;
 let refreshToken: string | null = null;
 
 export async function loadSession(): Promise<boolean> {
-  const [a, r] = await Promise.all([
+  const [a, r, remembered] = await Promise.all([
     AsyncStorage.getItem(ACCESS_KEY),
     AsyncStorage.getItem(REFRESH_KEY),
+    AsyncStorage.getItem(REMEMBER_KEY),
   ]);
-  accessToken = a;
-  refreshToken = r;
-  return Boolean(r);
+
+  // Only a remembered sign-in is kept in AsyncStorage. Tokens written before
+  // the flag existed predate the choice, and every session was remembered
+  // then, so they are honoured and the flag is backfilled.
+  if (r) {
+    if (remembered === null) await AsyncStorage.setItem(REMEMBER_KEY, '1');
+    accessToken = a;
+    refreshToken = r;
+    persistSession = true;
+    return true;
+  }
+
+  // A session the user chose not to have remembered only survives inside the
+  // tab that created it.
+  const sessionRefresh = scoped.read(REFRESH_KEY);
+  if (sessionRefresh) {
+    accessToken = scoped.read(ACCESS_KEY);
+    refreshToken = sessionRefresh;
+    persistSession = false;
+    return true;
+  }
+
+  accessToken = null;
+  refreshToken = null;
+  return false;
 }
 
 async function storeTokens(access: string, refresh: string): Promise<void> {
   accessToken = access;
   refreshToken = refresh;
+
+  if (!persistSession) {
+    scoped.write(ACCESS_KEY, access);
+    scoped.write(REFRESH_KEY, refresh);
+    return;
+  }
+
   await AsyncStorage.multiSet([
     [ACCESS_KEY, access],
     [REFRESH_KEY, refresh],
+    [REMEMBER_KEY, '1'],
   ]);
 }
 
 export async function clearSession(): Promise<void> {
   accessToken = null;
   refreshToken = null;
-  await AsyncStorage.multiRemove([ACCESS_KEY, REFRESH_KEY]);
+  persistSession = true;
+  scoped.remove(ACCESS_KEY);
+  scoped.remove(REFRESH_KEY);
+  await AsyncStorage.multiRemove([ACCESS_KEY, REFRESH_KEY, REMEMBER_KEY]);
 }
 
 export function hasSession(): boolean {
@@ -114,12 +199,25 @@ export async function register(email: string, password: string): Promise<string>
   return body.message ?? 'Check your email for a confirmation link.';
 }
 
-export async function login(email: string, password: string): Promise<SessionUser> {
+/**
+ * Signs in. `remember` decides whether the session outlives the browser or
+ * app; declining keeps it to the current tab (web) or run (native).
+ */
+export async function login(
+  email: string,
+  password: string,
+  remember = true
+): Promise<SessionUser> {
   const body = await raw('/api/auth/login', {
     method: 'POST',
     auth: false,
     body: JSON.stringify({ email, password }),
   });
+  // Set before storing, since storeTokens reads it to pick the store. Any
+  // tokens from a previous session are cleared so a remembered sign-in cannot
+  // be left behind by an unremembered one.
+  await clearSession();
+  persistSession = remember;
   await storeTokens(body.accessToken, body.refreshToken);
   return body.user;
 }
